@@ -11,6 +11,11 @@
 ### E  ESTATISTICA DESCRITIVA                          #######
 ##############################################################
 
+### estude este código POR BLOCO. Observe que algumas variáveis são reaproveitadas.  
+
+##############
+##BLOCO 1: INICIALIZANDO AS BIBLIOTECAS E ABRINDO E SALVANDO ARQUIVOS
+#############
 
 ##  Inicilizacao das bibliotecas 
 
@@ -19,7 +24,7 @@ if (!require("pacman")){
   library(pacman)
 }else{library(pacman)}
 
-p_load("tidyverse","dtplyr","ggplot2")
+p_load("tidyverse","dplyr","dtplyr","ggplot2", "lubridat")
 
 ## Definicao dos diretorios e arquivo de dados
 ## utiliza-se o arquivo "DadosCompletos.RDS" que contem serie temporal de precipitacao e vazao 
@@ -38,6 +43,12 @@ ZZ<-  DadosCompletos%>% select(Vazoes_compl,Prec_compl)
 write_rds(x = ZZ, file = "D:/DOCUMENTOS/GitHub/R4Hydrology/GRAD/FLUPLU2.rds")
 
 
+
+
+##################################
+#### BLOCO 2: EXPLORANDO A SERIE COMO UM TODO
+##################################
+
 ## Atribuindo  o formato "tibble" a tabela de dados
 AA<-as_tibble(DadosCompletos)
 
@@ -48,12 +59,21 @@ AA
 ## Escolhe-se inialmente as vazões
 dadosXX <- AA$Vazoes_compl
 
-## Cbtendo informações sobre valores minimos e máximos,quartis, mediana e média
-## armazenado os dados na variável "estatistica"
+## Obtendo e formatando as datas em que ocorreram as observações
+datasOBS<-as.POSIXct(AA$Datas_compl,format = "%Y/%m/%d")
+
+## Plotagem dos dados para observar o padrao de ocorrencia
+plot(datasOBS, dadosXX,type='line')
+
+
+## Obtendo Sumario estistico Contendo informações sobre valores minimos e maximos, 
+## quartis, mediana e madia
+## armazenado os dados na variavel "estatistica"
+
 estatistica<- summary(dadosXX)
 estatistica
 
-## Cálculo da media, observe a remocao dos valores NA (ausentes) 
+## Calculo da media, observe a remocao dos valores NA (ausentes) 
 
 MEDIA<-mean(dadosXX, na.rm= TRUE)
 MEDIA
@@ -73,22 +93,15 @@ CV<-desvpad/MEDIA
 CV
 
 
-## Obtendo e formatando as datas em que ocorreram as observações
-datasOBS<-as.POSIXct(AA$Datas_compl,format = "%Y/%m/%d")
-
-## Plotagem dos dados para observar o padrao de ocorrencia
-plot(datasOBS, dadosXX,type='line')
-
-## Plotagem  do boxplot dos dados para observar a frequencia de ocorrencia dos eventos
-
-boxplot(AA$Vazoes_compl)
 
 
+##################################
+#### BLOCO 3: EXPLORANDO DADOS NA ESCALA MENSAL
+##################################
 
 ## analisando os dados na tabela condicional ao mês da informação
 
 ## analisar os dados para um dado mês 
-
 
 ## definindo uma variável na tabela de dados que contenham os meses
 AA$mes <- format(AA$Datas_compl,format='%m')
@@ -112,7 +125,7 @@ plot(Qjan)
 plot(Qfev)
 
 
-## agrupar os dados da tabela 
+## agrupar os dados da tabela por mes 
 
 by_data<-group_by(AA,mes)
 
@@ -155,4 +168,64 @@ group_vars(by_data)
 group_rows(by_data)
 
 
+##################################
+#### BLOCO 4: EXPLORANDO A SERIE ANUAL
+##################################
+
+
+## Obtendo a serie anual 
+
+### Foi defnido anteiormente o campo dos meses
+## definindo uma variável na tabela de dados que contenham os meses
+#AA$mes <- format(AA$Datas_compl,format='%m')
+AA$ano <- format(AA$Datas_compl,format='%Y')
+AA$mes <- format(AA$Datas_compl,format='%m')
+
+# obtendo valores medios, maximos e minimos  anuais
+
+QANUAL<- AA%>% 
+         group_by(ano)%>%
+        summarise(vazMED = mean(Vazoes_compl ),vazMIN = min(Vazoes_compl),
+             vazMAX = max(Vazoes_compl), na.rm=TRUE)
+
+# plotando valores máximos, médios e mínimos anuais
+plot(QANUAL$ano, QANUAL$vazMAX, type='l', col='red')
+lines(QANUAL$ano, QANUAL$vazMED, type='l', col='blue')
+lines (QANUAL$ano, QANUAL$vazMIN, col='GREEN')
+
+
+## Plotagem  do boxplot dos dados para observar a frequencia de ocorrencia dos eventos
+
+boxplot(QANUAL$vazMIN, QANUAL$vazMED,QANUAL$vazMAX )
+
+# EstatIstica dos valores mEdios anuais
+
+estatisticaMIN<- summary(QANUAL$vazMIN)
+estatisticaMIN
+
+estatistica<- summary(QANUAL$vazMED)
+estatistica
+
+estatisticaMAX<- summary(QANUAL$vazMAX)
+estatisticaMAX
+
+
+## Cálculo da media, observe a remocao dos valores NA (ausentes) 
+
+MEDIA<-mean(QANUAL$vazMED, na.rm= TRUE)
+MEDIA
+
+## Calculo da mediana, observe a remocao dos valores NA (ausentes) 
+
+MEDIANA<-median(QANUAL$vazMED, na.rm= TRUE)
+MEDIANA
+
+## Calculo da desvio padrão, observe a remocao dos valores NA (ausentes) 
+desvpad<-sd(QANUAL$vazMED, na.rm= TRUE)
+desvpad
+
+## Calculo do coeficiente de variação
+
+CV<-desvpad/MEDIA
+CV
 
